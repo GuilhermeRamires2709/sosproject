@@ -1,0 +1,2 @@
+Este projeto foi desenvolvido no intuito de facilitar a vida dos organizadores e voluntários da ONG S.O.S Rio Caí. Através do Wordpress foi desenvolvida um site que possibilita a ONG divulgar-se através de publicações, captar novos voluntários a partir de um formulário de contato, bem como agendar eventos.
+Foi utilizado o framework wordpress e suas extensões "forminator" para cadastro de novos usuários e "Events Manager" para organização e agendamento de eventos.
