@@ -120,6 +120,28 @@ class Forminator_Calculation extends Forminator_Field {
 			$formula = $formula . '*1';
 		}
 
+		$fields_in_formula = forminator_calculator_pull_fields( $formula );
+		$full_matches      = $fields_in_formula[0];
+		foreach ( $fields_in_formula[1] as $key => $field_id ) {
+			if ( ! isset( $full_matches[ $key ] ) ) {
+				continue;
+			}
+			$form_id = isset( $this->form_settings['form_id'] ) ? $this->form_settings['form_id'] : 0;
+			if ( ! empty( $form_id ) ) {
+				if ( false !== strpos( $field_id, 'number-' ) || false !== strpos( $field_id, 'currency-' ) ) {
+					$field_form		= Forminator_Form_Model::model()->load( $form_id );
+					$formula_field 	= $field_form->get_field( $field_id, true );
+					$calc_enabled 	= self::get_property( 'calculations', $formula_field, true, 'bool' );
+					if ( ! $calc_enabled ) {
+						$field_val		= Forminator_CForm_Front_Action::replace_to( $field_id, $formula );
+						$find_str		= $full_matches[ $key ];
+						$replace_with	= '(' . ( $field_val ) . ')';
+						$formula 		= implode( $replace_with, explode( $find_str, $formula, 2 ) );
+					}
+				}
+			}
+		}
+
 		$number_attr = array(
 			'name'               => $name,
 			'value'              => $value,

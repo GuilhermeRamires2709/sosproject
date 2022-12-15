@@ -2729,5 +2729,14 @@ abstract class Forminator_Addon_Abstract implements Forminator_Addon_Interface {
 		return $this->_addon_quiz_hooks_instances[ $quiz_id ];
 	}
 
+	/**
+	 * Connection failed
+	 *
+	 * @return string
+	 */
+	final public function connection_failed() {
 
+		/* translators: integration's title */
+		return sprintf( __( 'We couldn\'t connect to your %s account. Please resolve the errors below and try again.', 'forminator' ), $this->_title );
+	}
 }

@@ -82,6 +82,11 @@ class Forminator_QForm_Front extends Forminator_Render_Form {
 				$this->generate_render_id( $id );
 				$this->get_form_placeholder( esc_attr( $id ), true );
 
+				if ( $this->has_lead() && ! $is_preview ) {
+					$custom_form_view = Forminator_CForm_Front::get_instance();
+					$custom_form_view->display( $this->get_leads_id(), $is_preview, $data, true, $this->model );
+				}
+
 				return;
 			}
 
@@ -106,7 +111,7 @@ class Forminator_QForm_Front extends Forminator_Render_Form {
 				add_action( 'wp_footer', array( $this, 'forminator_render_front_scripts' ), 9999 );
 			}
 
-			if ( $this->has_lead() && ! $is_preview ) {
+			if ( $this->has_lead() && ! $is_preview && ! $is_ajax_load ) {
 				$custom_form_view = Forminator_CForm_Front::get_instance();
 				$custom_form_view->display( $this->get_leads_id(), $is_preview, $data, true, $this->model );
 			}

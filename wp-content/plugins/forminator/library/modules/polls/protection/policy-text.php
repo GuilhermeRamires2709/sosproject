@@ -58,7 +58,6 @@
 	</p>
 	<ul class="privacy-policy-tutorial">
 		<li><?php esc_html_e( 'Akismet. Enabled when you installed and configured Akismet on your site.' ); ?></li>
-		<li><?php esc_html_e( 'Zapier. Enabled when you activated and set up Webhook on Integrations settings.' ); ?></li>
 		<li><?php esc_html_e( 'Google Drive. Enabled when you activated and set up Google Drive on Integrations settings.' ); ?></li>
 		<li><?php esc_html_e( 'Trello. Enabled when you activated and set up Trello on Integrations settings.' ); ?></li>
 		<li><?php esc_html_e( 'Slack. Enabled when you activated and set up Slack on Integrations settings.' ); ?></li>
@@ -66,8 +65,6 @@
 	<p>
 		<strong class="privacy-policy-tutorial"><?php esc_html_e( 'Suggested text: ', 'forminator' ); ?></strong>
 	<p><?php esc_html_e( 'We use Akismet Spam for spam protection. Their privacy policy can be found here : https://automattic.com/privacy/.', 'forminator' ); ?></p>
-	<p><?php esc_html_e( 'We use Zapier to manage our integration data. Their privacy policy can be found here : https://zapier.com/privacy/.', 'forminator' ); ?></p>
-
 	<p>
 		<?php
 		esc_html_e(

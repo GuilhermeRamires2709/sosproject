@@ -1,13 +1,13 @@
 === Forminator - Contact Form, Payment Form & Custom Form Builder ===
 Plugin Name: Forminator - Contact Form, Payment Form & Custom Form Builder
-Version: 1.19.0
+Version: 1.21.0
 Author: WPMU DEV
 Author URI: https://wpmudev.com/
 Contributors: WPMUDEV
 Tags: forms, contact form, wordpress form plugin, payment form, custom form, form builder, paypal form wordpress, form maker, quiz, quiz builder, order form, stripe payments, paypal payments, stripe form, paypal form
 Requires at least: 5.2
 Tested up to: 6.1
-Stable tag: 1.19.0
+Stable tag: 1.21.0
 Requires PHP: 5.6.20
 License: GPL v2 - http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 
@@ -210,6 +210,49 @@ Find out all you need to know by checking out our API documentation [here](https
 9. Allow simple drag and drop multi-file uploads for users.
 
 == Changelog ==
+
+= 1.21.0 ( 2022-12-05 ) =
+
+- Fix: Security improvements
+- Fix: Lead submissions to an unpublished quiz
+- Fix: Signature field does not work on Divi Popups
+- Fix: Stripe field not visible in pop-ups with on-click triggers
+- Fix: MailChimp Tags Modal window doesn't appear for quizzes
+- Fix: Phone field "National" validation fails when entering a valid international number
+- Fix: If Akismet protection is enabled, the form will display a warning when the Signature field is submitted
+- Fix: Redirect after submission isn't working
+- Fix: API method for adding polls isn't working
+- Fix: It is only possible to pre-populate a query variable if the option is set to 'Selected'
+- Fix: Uncaught exception for Mailchimp causes a fatal error
+- Fix: Register/login links disappear after submission
+- Fix: Multiselect email routing bug
+- Fix: Content filed in the Post Data field doesn't work with save and continue
+- Fix: The thousands separator is not working in email when using the {calc-ID} macro
+- Fix: Although calculations is disabled for a Number field, it is still used in calculations
+- Fix: The ampersand (&) sign is counted as 5 characters instead of 1
+- Fix: Bypass adding the required email notification recipient
+- Fix: Error when adding an ampersand (&) sign as a Checkbox option value
+- Fix: PayPal shows an error message when adding multiple forms with a PayPal button on the same page
+- Fix: An extra "+" character is added to phone number upon submission if the number is incorrect
+- Fix: Performing calculations on two number fields are initially out of sync when using the increase/decrease buttons
+
+= 1.20.1 ( 2022-11-17 ) =
+
+- New: Scheduled report notifications
+- Improvement: Custom Variable selections includes Number fields
+- Fix: Quiz preview modal doesn't work
+- Fix: Knowledge quiz email notification values for From Name, Reply-to email, CC emails, and BCC emails don't work
+- Fix: No Pagination is not set as the quiz presentation type if you use the back button on the quiz creation modal window
+- Fix: HubSpot and AWeber Identifier aren't working
+- Fix: The "Jordanian Dinar – JOD" is missing from the Payment Currency list
+- Fix: Typo on the links for Invisible hCaptcha
+- Fix: Submission indicator doesn't work when a validation error occurs
+- Fix: Select option values aren't trimmed for visibility conditions
+- Fix: Can't create new forms via the dashboard page due to an update notification popup
+- Fix: Timepicker limit not working
+- Fix: Empty submission value when setting the Submission ID as a default value for a hidden filed
+- Fix: Conditional rules don't work when setting the Default Value of the Hidden field to Query Parameter
+- Fix: Error when Routing is based on a checkbox field
 
 = 1.19.0 ( 2022-10-20 ) =
 

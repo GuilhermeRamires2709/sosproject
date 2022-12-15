@@ -142,6 +142,10 @@ class Forminator_MultiValue extends Forminator_Field {
 		$input_visibility = filter_var( $input_visibility, FILTER_VALIDATE_BOOLEAN );
 		$draft_value 	  = isset( $draft_value['value'] ) && ! empty( $draft_value['value'] ) ? array_map( 'trim', $draft_value['value'] ) : '';
 
+		$draft_valid	  = false;
+		$prefil_valid	  = false;
+		$default_arr 	  = array();
+
 		$html .= sprintf(
 			'<div role="group" class="forminator-field" aria-labelledby="%s">',
 			'forminator-checkbox-group-' . $uniq_id . '-label'
@@ -161,6 +165,27 @@ class Forminator_MultiValue extends Forminator_Field {
 					'forminator-checkbox-group-' . $uniq_id . '-label',
 					$label
 				);
+			}
+		}
+
+		foreach ( $options as $option ) {
+			$pref_value = $option['value'] ? esc_html( $option['value'] ) : esc_html( $option['label'] );
+			if ( ! empty( $draft_value ) ) {
+				if ( in_array( trim( $pref_value ), $draft_value ) ) { // phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict
+					$draft_valid	= true;
+					$default_arr[] 	= $pref_value;
+				}
+			}
+			
+			if ( $this->has_prefill( $field ) ) {
+				// We have pre-fill parameter, use its value or $value.
+				$prefill        = $this->get_prefill( $field, false );
+				$prefill_values = explode( ',', $prefill );
+				$prefill_values	= array_map( 'trim', $prefill_values );
+				if ( in_array( $pref_value, $prefill_values ) ) { // phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict
+					$prefil_valid	= true;
+					$default_arr[] 	= $pref_value;
+				}
 			}
 		}
 
@@ -190,30 +215,22 @@ class Forminator_MultiValue extends Forminator_Field {
 
 			$selected = false;
 
-			if ( ! empty( $draft_value ) ) {
-
-				if ( in_array( trim( $value ), $draft_value ) ) { // phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict
-					$option_default = true;
-				}
-
-			} elseif ( $this->has_prefill( $field ) ) {
-
-				// We have pre-fill parameter, use its value or $value.
-				$prefill        = $this->get_prefill( $field, false );
-				$prefill_values = explode( ',', $prefill );
-				$prefill_values	= array_map( 'trim', $prefill_values );
-
-				if ( in_array( $value, $prefill_values ) ) { // phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict
-					$option_default = true;
-				}
-			}
-
 			if ( self::FIELD_PROPERTY_VALUE_NOT_EXIST !== $post_value ) {
 				if ( is_array( $post_value ) ) {
 					$selected = in_array( $value, $post_value );// phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict
 				}
 			} else {
-				$selected = $option_default;
+				if ( $draft_valid ) {
+					if ( in_array( $value, $default_arr ) ) {
+						$selected = true;
+					}
+				} else if ( $prefil_valid ) {
+					if ( in_array( $value, $default_arr ) ) {
+						$selected = true;
+					}
+				} else {
+					$selected = $option_default;
+				}
 			}
 
 			$selected = $selected ? 'checked="checked"' : '';
@@ -336,7 +353,7 @@ class Forminator_MultiValue extends Forminator_Field {
 		$id = self::get_property( 'element_id', $field );
 
 		foreach ( $data as $value ) {
-			if ( false === array_search( $value, array_column( $field['options'], 'value' ) ) ) {
+			if ( false === array_search( htmlspecialchars_decode( $value ), array_column( $field['options'], 'value' ) ) ) {
 				$this->validation_message[ $id ] = apply_filters(
 					'forminator_checkbox_field_nonexistent_validation_message',
 					__( 'Selected value does not exist.', 'forminator' ),

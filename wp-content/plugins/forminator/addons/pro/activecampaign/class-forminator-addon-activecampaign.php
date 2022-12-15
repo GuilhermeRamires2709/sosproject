@@ -322,7 +322,9 @@ final class Forminator_Addon_Activecampaign extends Forminator_Addon_Abstract {
 						$show_success = true;
 					}
 				} catch ( Forminator_Addon_Activecampaign_Exception $e ) {
-					$template_params['error_message'] = $e->getMessage();
+					$template_params['error_message'] = $this->connection_failed();
+					$template_params['api_key_error'] = esc_html__( 'Please enter a valid ActiveCampaign API Key', 'forminator' );
+					$template_params['api_url_error'] = esc_html__( 'Please enter a valid ActiveCampaign API URL', 'forminator' );
 					$has_errors                       = true;
 				}
 			}
@@ -384,12 +386,12 @@ final class Forminator_Addon_Activecampaign extends Forminator_Addon_Abstract {
 	 */
 	public function validate_api_url( $api_url ) {
 		if ( empty( $api_url ) ) {
-			throw new Forminator_Addon_Activecampaign_Exception( __( 'Please put a valid ActiveCampaign API URL', 'forminator' ) );
+			throw new Forminator_Addon_Activecampaign_Exception( __( 'Please enter a valid ActiveCampaign API URL', 'forminator' ) );
 		}
 
 		$api_url = wp_http_validate_url( $api_url );
 		if ( false === $api_url ) {
-			throw new Forminator_Addon_Activecampaign_Exception( __( 'Please put a valid ActiveCampaign API URL', 'forminator' ) );
+			throw new Forminator_Addon_Activecampaign_Exception( __( 'Please enter a valid ActiveCampaign API URL', 'forminator' ) );
 		}
 
 		return $api_url;
@@ -407,7 +409,7 @@ final class Forminator_Addon_Activecampaign extends Forminator_Addon_Abstract {
 	 */
 	public function validate_api_key( $api_key ) {
 		if ( empty( $api_key ) ) {
-			throw new Forminator_Addon_Activecampaign_Exception( __( 'Please put a valid ActiveCampaign API Key', 'forminator' ) );
+			throw new Forminator_Addon_Activecampaign_Exception( __( 'Please enter a valid ActiveCampaign API Key', 'forminator' ) );
 		}
 
 		return $api_key;

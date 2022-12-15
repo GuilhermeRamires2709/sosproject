@@ -783,9 +783,10 @@ class Forminator_Addon_Mailchimp extends Forminator_Addon_Abstract {
 		$data      = array();
 		wp_parse_str( $post_data, $data );
 		$module_id = isset( $data['module_id'] ) ? $data['module_id'] : '';
+		$module_type = isset( $data['module_type'] ) ? $data['module_type'] : '';
 		if ( $module_id ) {
-			$form_settings_instance = $this->get_addon_settings( $module_id, 'form' );
-			$html                   = $form_settings_instance->get_group_interests( $data );
+			$module_settings_instance = $this->get_addon_settings( $module_id, $module_type );
+			$html                   = $module_settings_instance->get_group_interests( $data );
 		}
 
 		wp_send_json_success( $html );

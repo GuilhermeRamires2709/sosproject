@@ -140,12 +140,21 @@ class Forminator_Addon_Mailchimp_Form_Settings extends Forminator_Addon_Form_Set
 
 		$error_message        = '';
 		$input_error_messages = array();
+		$api_error            = false;
 
 		$html_select_mail_list = '';
 		$html_field_mail_list  = '';
 
 		try {
 			$api        = $this->addon->get_api();
+
+			// Check API key first if valid.
+			$check_api  = $api->ping();
+			if ( 'Forminator_Addon_Mailchimp_Wp_Api_Exception' === get_class( $check_api ) ) {
+				$api_error = true;
+				throw new Forminator_Addon_Mailchimp_Exception( $check_api->getMessage() );
+			}
+
 			$mail_lists = $api->get_all_lists();
 			$lists      = wp_list_pluck( $mail_lists, 'name', 'id' );
 
@@ -234,6 +243,10 @@ class Forminator_Addon_Mailchimp_Form_Settings extends Forminator_Addon_Form_Set
 
 						$error_message .= '<p>' . $e->getMessage() . '</p>';
 
+						if ( $api_error ) {
+							$error_message .= '<p>' . esc_html__( 'See if creating a new API key helps.', 'forminator' ) . '</p>';
+						}
+
 					$error_message .= '</div>';
 
 				$error_message .= '</div>';
@@ -242,30 +255,33 @@ class Forminator_Addon_Mailchimp_Form_Settings extends Forminator_Addon_Form_Set
 		}
 
 		$buttons = array();
-		// add disconnect button if already is_form_connected.
-		if ( $this->addon->is_form_connected( $this->form_id ) ) {
-			$buttons['disconnect']['markup'] = Forminator_Addon_Mailchimp::get_button_markup(
-				esc_html__( 'Deactivate', 'forminator' ),
-				'sui-button-ghost sui-tooltip sui-tooltip-top-center forminator-addon-form-disconnect',
-				esc_html__( 'Deactivate Mailchimp from this Form.', 'forminator' )
-			);
-		}
 
-		$buttons['next']['markup'] = '<div class="sui-actions-right">' .
-									Forminator_Addon_Mailchimp::get_button_markup( esc_html__( 'Next', 'forminator' ), 'forminator-addon-next' ) .
-									'</div>';
+		if ( ! $api_error ) {
+			// add disconnect button if already is_form_connected.
+			if ( $this->addon->is_form_connected( $this->form_id ) ) {
+				$buttons['disconnect']['markup'] = Forminator_Addon_Mailchimp::get_button_markup(
+					esc_html__( 'Deactivate', 'forminator' ),
+					'sui-button-ghost sui-tooltip sui-tooltip-top-center forminator-addon-form-disconnect',
+					esc_html__( 'Deactivate Mailchimp from this Form.', 'forminator' )
+				);
+			}
 
-		$gdpr_fields = '';
-		if ( Forminator_Addon_Mailchimp::is_enable_gdpr() ) {
-			$gdpr_fields = '<div class="sui-form-field">' .
-						'<label class="sui-label">' . __( 'Enable GDPR', 'forminator' ) . '</label>
-								<input type="checkbox" name="enable_gdpr" value="1" ' . checked( 1, $current_data['enable_double_opt_in'], false ) . '>
-							</div>
+			$buttons['next']['markup'] = '<div class="sui-actions-right">' .
+										Forminator_Addon_Mailchimp::get_button_markup( esc_html__( 'Next', 'forminator' ), 'forminator-addon-next' ) .
+										'</div>';
 
-							<div class="sui-form-field">
-								<label class="sui-label">' . __( 'GDPR Text', 'forminator' ) . '</label>
-								<textarea name="gdpr_text">' . $current_data['gdpr_text'] . '</textarea>
-							</div>';
+			$gdpr_fields = '';
+			if ( Forminator_Addon_Mailchimp::is_enable_gdpr() ) {
+				$gdpr_fields = '<div class="sui-form-field">' .
+							'<label class="sui-label">' . __( 'Enable GDPR', 'forminator' ) . '</label>
+									<input type="checkbox" name="enable_gdpr" value="1" ' . checked( 1, $current_data['enable_double_opt_in'], false ) . '>
+								</div>
+
+								<div class="sui-form-field">
+									<label class="sui-label">' . __( 'GDPR Text', 'forminator' ) . '</label>
+									<textarea name="gdpr_text">' . $current_data['gdpr_text'] . '</textarea>
+								</div>';
+			}
 		}
 
 		$html  = '<div class="forminator-integration-popup__header">';
@@ -273,17 +289,20 @@ class Forminator_Addon_Mailchimp_Form_Settings extends Forminator_Addon_Form_Set
 			$html .= '<p class="sui-description">' . __( 'Choose the audience you want to send form data to.', 'forminator' ) . '</p>';
 			$html .= $error_message;
 		$html .= '</div>';
-		$html .= '<form enctype="multipart/form-data">';
-			$html .= $html_field_mail_list;
-			$html .= '<div class="sui-form-field">';
-				$html .= '<label class="sui-toggle">';
-					$html .= '<input type="checkbox" name="enable_double_opt_in" value="1" id="forminator_addon_mailchimp_enable_double_opt_in" ' . checked( 1, $current_data['enable_double_opt_in'], false ) . ' />';
-					$html .= '<span class="sui-toggle-slider"></span>';
-					$html .= '<span class="sui-toggle-label">' . __( 'Use Double Opt in', 'forminator' ) . '</span>';
-				$html .= '</label>';
-			$html .= '</div>';
-			$html .= $gdpr_fields;
-		$html .= '</form>';
+
+		if ( ! $api_error ) {
+			$html .= '<form enctype="multipart/form-data">';
+				$html .= $html_field_mail_list;
+				$html .= '<div class="sui-form-field">';
+					$html .= '<label class="sui-toggle">';
+						$html .= '<input type="checkbox" name="enable_double_opt_in" value="1" id="forminator_addon_mailchimp_enable_double_opt_in" ' . checked( 1, $current_data['enable_double_opt_in'], false ) . ' />';
+						$html .= '<span class="sui-toggle-slider"></span>';
+						$html .= '<span class="sui-toggle-label">' . __( 'Use Double Opt in', 'forminator' ) . '</span>';
+					$html .= '</label>';
+				$html .= '</div>';
+				$html .= $gdpr_fields;
+			$html .= '</form>';
+		}
 
 		return array(
 			'html'       => $html,
@@ -662,23 +681,35 @@ class Forminator_Addon_Mailchimp_Form_Settings extends Forminator_Addon_Form_Set
 	private function get_second_step_options_tags( $selected_ids ) {
 		ob_start();
 		// Reset cache.
-		$this->set_tags( true );
-		?>
-			<div class="sui-form-field">
-                <label class="sui-label" for="tags"><strong><?php echo esc_html__( 'Tags', 'forminator' ) . '</strong>&nbsp;(' . esc_html__( 'Optional', 'forminator' ) . ')'; ?></label>
-				<select class="sui-select" name="tags[]" id="tags"
-                        multiple="multiple"
-                        data-tags="false"
-                        data-token-separators="[',']"
-                        data-placeholder="<?php esc_html_e( 'Start typing to add tags', 'forminator' ); ?>"
-                        data-allow-clear="false">
+		try {
+			$this->set_tags( true );
+			?>
+				<div class="sui-form-field">
+					<label class="sui-label" for="tags"><strong><?php echo esc_html__( 'Tags', 'forminator' ) . '</strong>&nbsp;(' . esc_html__( 'Optional', 'forminator' ) . ')'; ?></label>
+					<select class="sui-select" name="tags[]" id="tags"
+							multiple="multiple"
+							data-tags="false"
+							data-token-separators="[',']"
+							data-placeholder="<?php esc_html_e( 'Start typing to add tags', 'forminator' ); ?>"
+							data-allow-clear="false">
 
-				<?php foreach ( $this->tags_data as $tag_id => $name ) { ?>
-					<option value="<?php echo esc_attr( $tag_id ); ?>"<?php selected( in_array( $tag_id, array_keys( $selected_ids ), true ) ); ?>><?php echo esc_html( $name ); ?></option>
-				<?php } ?>
-                </select>
-            </div>
-		<?php
+					<?php foreach ( $this->tags_data as $tag_id => $name ) { ?>
+						<option value="<?php echo esc_attr( $tag_id ); ?>"<?php selected( in_array( $tag_id, array_keys( $selected_ids ), true ) ); ?>><?php echo esc_html( $name ); ?></option>
+					<?php } ?>
+					</select>
+				</div>
+			<?php
+		} catch ( Exception $e ) {
+			?>
+				<div role="alert" class="sui-notice sui-notice-red sui-active" style="display: block; text-align: left;" aria-live="assertive">
+					<div class="sui-notice-content">
+						<div class="sui-notice-message"><span class="sui-notice-icon sui-icon-info" aria-hidden="true"></span>
+							<p><?php echo esc_html( $e->getMessage() ); ?></p>
+						</div>
+					</div>
+				</div>
+			<?php
+		}
 		$html = ob_get_clean();
 
 		return $html;

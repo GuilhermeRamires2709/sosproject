@@ -65,13 +65,7 @@
 		this.template_type = '';
 
 		this.init();
-
-		var self = this;
-		if ( 'undefined' !== typeof DiviArea ) {
-			DiviArea.addAction( 'show_area', function( area ) {
-				self.init();
-			});
-		}
+		this.handleDiviPopup();
 	}
 
 	// Avoid Plugin.prototype conflicts
@@ -545,7 +539,8 @@
 
 				// Initialize intlTelInput plugin on each field with "format check" enabled and
 				// set to check either "international" or "standard" phones.
-				var is_national_phone = $(this).data('national_mode'),
+				var self              = this,
+					is_national_phone = $(this).data('national_mode'),
 					country           = $(this).data('country'),
 					validation        = $(this).data('validation');
 
@@ -569,15 +564,25 @@
 						args.autoHideDialCode = false;
 					}
 
-					$(this).intlTelInput(args);
+					var iti = $(this).intlTelInput(args);
 					if ( 'undefined' !== typeof ( validation )
 						&& 'international' === validation ) {
 						var dial_code = $(this).intlTelInput( 'getSelectedCountryData' ).dialCode,
 							country_code = '+' + dial_code;
 						if ( country_code !== $(this).val() ) {
-							var phone_value = $(this).val().trim().replace( dial_code, '' );
+							var phone_value = $(this).val().trim().replace( dial_code, '' ).replace( '+', '' );
 								$(this).val( country_code + phone_value );
 						}
+					}
+
+					if ( 'undefined' !== typeof ( validation ) && 'standard' === validation ) {
+						// Reset country to default if changed and invalid previously.
+						$( this ).on( 'blur', function() {
+							if ( '' === $( self ).val() ) {
+								iti.intlTelInput( 'setCountry', country );
+								form.validate().element( $( self ) );
+							}
+						});
 					}
 
 					if ( ! is_material ) {
@@ -994,9 +999,17 @@
 					'removeMaskOnSubmit': true,
 				});
 			});
+
+			// Fixes the 2nd number input bug: https://incsub.atlassian.net/browse/FOR-3033
+			form.find( 'input[type=number]' ).on( 'mouseover', function() {
+				$( this ).trigger( 'focus' );
+			}).on( 'mouseout', function() {
+				$( this ).trigger( 'blur' );
+			});
 		},
 
 		field_time: function () {
+			var self = this;
 			$('.forminator-input-time').on('input', function (e) {
 				var $this = $(this),
 				    value = $this.val()
@@ -1005,6 +1018,72 @@
 				// Allow only 2 digits for time fields
 				if (value && value.length >= 2) {
 					$this.val(value.substr(0, 2));
+				}
+			});
+
+			// Apply time limits.
+			this.$el.find( '.forminator-timepicker' ).each( function( i, el ) {
+				var $tp   = $( el ),
+					start = $tp.data( 'start-limit' ),
+					end   = $tp.data( 'end-limit' )
+				;
+
+				if ( 'undefined' !== typeof start && 'undefined' !== typeof end ) {
+					var hourSelect = $tp.find( '.time-hours' ),
+						initHours  = hourSelect.html()
+					;
+
+					// Reset right away.
+					self.resetTimePicker( $tp, start, end );
+					// Reset onchange.
+					$tp.find( '.time-ampm' ).on( 'change', function() {
+						hourSelect.val('');
+						hourSelect.html( initHours );
+						self.resetTimePicker( $tp, start, end );
+						setTimeout(
+							function() {
+								$tp.find( '.forminator-field' ).removeClass( 'forminator-has_error' );
+							},
+							10
+						);
+					});
+				}
+			});
+		},
+
+		// Remove hour options that are outside the limits.
+		resetTimePicker: function ( timePicker, start, end ) {
+			var meridiem = timePicker.find( '.time-ampm' ),
+				[ startTime, startModifier ] = start.split(' '),
+				[ startHour, startMinute ] = startTime.split(':'),
+				startHour = parseInt( startHour ),
+				[ endTime, endModifier ] = end.split(' '),
+				[ endHour, endMinute ] = endTime.split(':'),
+				endHour = parseInt( endHour )
+				;
+
+			if ( startModifier === endModifier ) {
+				meridiem.find( 'option[value!="' + endModifier + '"]' ).remove();
+			}
+
+			timePicker.find( '.time-hours' ).children().each( function( optionIndex, optionEl ) {
+				var optionValue = parseInt( optionEl.value );
+
+				if (
+					'' !== optionValue &&
+					( optionValue < startHour || ( 0 !== startHour && 12 === optionValue ) ) &&
+					meridiem.val() === startModifier
+				) {
+					optionEl.remove();
+				}
+
+				if (
+					'' !== optionValue &&
+					optionValue > endHour &&
+					12 !== optionValue &&
+					meridiem.val() === endModifier
+				) {
+					optionEl.remove();
 				}
 			});
 		},
@@ -1413,6 +1492,17 @@
 			}
 		},
 
+		handleDiviPopup: function () {
+			var self = this;
+			if ( 'undefined' !== typeof DiviArea ) {
+				DiviArea.addAction( 'show_area', function( area ) {
+					self.init();
+					forminatorSignInit();
+					forminatorSignatureResize();
+				});
+			}
+		},
+
 		disableFields: function () {
 			this.$el.addClass( 'forminator-fields-disabled' );
 		},
@@ -1472,6 +1562,11 @@
 
 			// only forminator
 			if ( -1 !== editor_id.indexOf( 'forminator-field-textarea-' ) ) {
+				editor.save();
+				$field.find( '#' + editor_id ).trigger( 'change' );
+			}
+
+			if ( -1 !== editor_id.indexOf( 'forminator-field-post-content-' ) ) {
 				editor.save();
 				$field.find( '#' + editor_id ).trigger( 'change' );
 			}
@@ -1570,10 +1665,10 @@ var forminator_render_captcha = function () {
 		var thisCaptcha = jQuery(this),
 			form 		= thisCaptcha.closest('form');
 
-		if (form.length > 0) {
+		if ( form.length > 0 && '' === thisCaptcha.html() ) {
 			window.setTimeout( function() {
 				var forminatorFront = form.data( 'forminatorFront' );
-				if (typeof forminatorFront !== 'undefined') {
+				if ( typeof forminatorFront !== 'undefined' ) {
 					forminatorFront.renderCaptcha( thisCaptcha[0] );
 				}
 			}, 100 );

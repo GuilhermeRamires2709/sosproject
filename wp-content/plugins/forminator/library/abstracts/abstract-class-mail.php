@@ -181,12 +181,17 @@ abstract class Forminator_Mail {
 	 */
 	public function get_admin_email_recipients( $notification, $module = null, $entry = null, $lead_model = array() ) {
 
-		$email = array();
+		$email 		= array();
+		$recipients = array();
 		if ( isset( $notification['email-recipients'] ) && 'routing' === $notification['email-recipients'] ) {
 			if ( ! empty( $notification['routing'] ) ) {
 				foreach ( $notification['routing'] as $routing ) {
 					if ( $this->is_routing( $routing, $module ) ) {
-						$recipients = array_map( 'trim', explode( ',', $routing['email'] ) );
+						if( false !== strpos( $routing['email'], ',' ) ) {
+							$recipients = array_merge( array_map( 'trim', explode( ',', $routing['email'] ) ), $recipients );
+						} else {
+							$recipients[] = trim( $routing['email'] );
+						}
 					}
 				}
 			}

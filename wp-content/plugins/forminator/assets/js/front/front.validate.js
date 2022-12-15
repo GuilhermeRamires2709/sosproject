@@ -367,9 +367,14 @@
 		var url = $.validator.methods.url.bind(this);
 		return url(value, element) || url('http://' + value, element);
 	});
-	$.validator.addMethod("forminatorPhoneNational", function (value, element) {
+	$.validator.addMethod("forminatorPhoneNational", function ( value, element ) {
+		var phone = $( element );
+		if ( phone.data( 'country' ) !== phone.intlTelInput( 'getSelectedCountryData' ).iso2 ) {
+			return false;
+		}
+
 		// Uses intlTelInput to check if the number is valid.
-		return this.optional(element) || $(element).intlTelInput('isValidNumber');
+		return this.optional( element ) || phone.intlTelInput( 'isValidNumber' );
 	});
 	$.validator.addMethod("forminatorPhoneInternational", function (value, element) {
 		// check whether phone field is international and optional

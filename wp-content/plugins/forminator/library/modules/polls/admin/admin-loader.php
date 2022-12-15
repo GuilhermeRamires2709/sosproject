@@ -217,24 +217,27 @@ class Forminator_Poll_Admin extends Forminator_Admin_Module {
 	 *
 	 * @return array[]
 	 */
-	public static function get_default_settings( $name ) {
-		return array(
-			'answers'            => array(),
-			'settings'           => array(
-				'formName'               => $name,
-				'version'                => FORMINATOR_VERSION,
-				'admin-email-recipients' => array(
-					get_option( 'admin_email' ),
+	public static function get_default_settings( $name, $settings = array() ) {
+		return array_merge(
+			array(
+				'answers'            => array(),
+				'settings'           => array(
+					'formName'               => $name,
+					'version'                => FORMINATOR_VERSION,
+					'admin-email-recipients' => array(
+						get_option( 'admin_email' ),
+					),
+					'admin-email-title'      => __( 'New Poll submission for {poll_name}', 'forminator' ),
+					'admin-email-editor'     => __(
+						'You have a new poll submission: <br/><br/>{poll_answer}<br/><br/>Current results: <br/>{poll_result} <br/>---<br/> This message was sent from {site_url}.',
+						'forminator'
+					),
 				),
-				'admin-email-title'      => __( 'New Poll submission for {poll_name}', 'forminator' ),
-				'admin-email-editor'     => __(
-					'You have a new poll submission: <br/><br/>{poll_answer}<br/><br/>Current results: <br/>{poll_result} <br/>---<br/> This message was sent from {site_url}.',
-					'forminator'
-				),
+				'akismet-protection' => true,
+				'formName'           => $name,
+				'version'            => FORMINATOR_VERSION,
 			),
-			'akismet-protection' => true,
-			'formName'           => $name,
-			'version'            => FORMINATOR_VERSION,
+			$settings
 		);
 	}
 

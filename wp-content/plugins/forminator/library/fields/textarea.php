@@ -301,6 +301,7 @@ class Forminator_Textarea extends Forminator_Field {
 	 */
 	public function validate( $field, $data ) {
 		$id = self::get_property( 'element_id', $field );
+		$data = html_entity_decode( $data );
 
 		if ( ! isset( $field['limit'] ) ) {
 			$field['limit'] = 0;

@@ -37,6 +37,7 @@
 		this._defaults             = defaults;
 		this._name                 = pluginName;
 		this.paypalData            = null;
+		this.paypalButton          = null;
 		this.init();
 	}
 
@@ -50,6 +51,7 @@
 			this.paypalData = this.settings.paymentEl;
 
 			this.render_paypal_button( this.element );
+			this.replaceScriptCurrency();
 		},
 
 		is_data_valid: function() {
@@ -97,7 +99,7 @@
 				style_data.tagline =  paypalData.tagline;
 			}
 
-			paypal.Buttons({
+			this.paypalButton = paypal.Buttons({
 				onInit: function(data, actions) {
 					actions.disable();
 
@@ -222,7 +224,8 @@
 					$target_message.html('<label class="forminator-label--error"><span>' + error_msg + '</span></label>');
 					self.focus_to_element($target_message);
 				},
-			}).render( $form.find( '.forminator-button-paypal' )[0] );
+			});
+			this.paypalButton.render( $form.find( '.forminator-button-paypal' )[0] );
 		},
 
 		configurePayPal: function () {
@@ -510,6 +513,28 @@
 
 		field_is_select: function ( $element ) {
 			return $element.is('select');
+		},
+
+		/*
+		 * Replaces the currency in the paypal script url params
+		 * so it will match the currency of another form with paypal checkout
+		 */
+		replaceScriptCurrency: function () {
+			var self = this,
+				formCurrency = this.paypalData.currency;
+
+			self.$el.on( 'click', function( e ) {
+				var paypalScript = $( "script[src^='https://www.paypal.com/sdk/js']" ),
+					paypalScriptSrc = paypalScript.attr( 'src' ),
+					scriptCurrency = /currency=([^&]+)/.exec( paypalScriptSrc )[1];
+
+				if ( formCurrency === scriptCurrency ) {
+					return;
+				}
+
+				paypalScript.attr( 'src', paypalScriptSrc.replace( 'currency='+ scriptCurrency, 'currency='+ formCurrency ) );
+				self.paypalButton.updateProps();
+			});
 		},
 
 	});

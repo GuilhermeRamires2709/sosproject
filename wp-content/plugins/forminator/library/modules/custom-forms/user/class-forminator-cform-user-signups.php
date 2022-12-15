@@ -361,6 +361,13 @@ class Forminator_CForm_User_Signups {
 
 		do_action( 'forminator_activate_user', $user_id, $signup->meta );
 
+		if ( isset( $signup->settings['activation-method'] )
+			&& 'manual' === $signup->settings['activation-method']
+			&& ! current_user_can( 'manage_options' )
+		) {
+			return new WP_Error( 'user_activated', __( 'User account has been activated.', 'forminator' ), $signup );
+		}
+
 		// Create site only on main site and if option for that is enabled.
 		if ( forminator_is_main_site() ) {
 			$option_create_site = forminator_get_property( $signup->settings, 'site-registration' );

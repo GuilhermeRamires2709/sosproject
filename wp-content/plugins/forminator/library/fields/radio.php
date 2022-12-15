@@ -140,7 +140,11 @@ class Forminator_Radio extends Forminator_Field {
 		$input_visibility = self::get_property( 'input_visibility', $field, 'true' );
 		$input_visibility = filter_var( $input_visibility, FILTER_VALIDATE_BOOLEAN );
 
-		$uniq_id = Forminator_CForm_Front::$uid;
+		$prefil_valid	  = false;
+		$draft_valid	  = false;
+		$post_valid		  = false;
+		$default 		  = '';
+		$uniq_id 		  = Forminator_CForm_Front::$uid;
 
 		if ( (bool) $required ) {
 			$ariareq = 'true';
@@ -169,12 +173,36 @@ class Forminator_Radio extends Forminator_Field {
 		}
 
 		foreach ( $options as $option ) {
+			$pref_value	= ( $option['value'] || is_numeric( $option['value'] ) ? esc_html( $option['value'] ) : esc_html( $option['label'] ) );
+			if ( isset( $draft_value['value'] ) ) {
+				if ( trim( $draft_value['value'] ) === trim( $pref_value ) ) {
+					$draft_valid = true;
+					$default	 = $pref_value;
+				}
+			}
+			
+			if ( $this->has_prefill( $field ) ) {
+				// We have pre-fill parameter, use its value or $value.
+				$prefill = $this->get_prefill( $field, false );
+				if ( $prefill === $pref_value ) {
+					$prefil_valid = true;
+					$default      = $pref_value;
+				}
+			}
+
+			if ( $pref_value === $post_value ) {
+				$default 	= $pref_value;
+				$post_valid = true;
+			}
+		}
+
+		foreach ( $options as $option ) {
 			$input_id          = $id . '-' . $i . '-' . $uniq_id;
 			$value             = ( $option['value'] || is_numeric( $option['value'] ) ? esc_html( $option['value'] ) : esc_html( $option['label'] ) );
 			$option_default    = isset( $option['default'] ) ? filter_var( $option['default'], FILTER_VALIDATE_BOOLEAN ) : false;
-			$selected          = ( $value === $post_value || $option_default ) ? 'checked="checked"' : '';
 			$calculation_value = $calc_enabled && isset( $option['calculation'] ) ? $option['calculation'] : 0.0;
 			$option_image_url  = array_key_exists( 'image', $option ) ? $option['image'] : '';
+			$option_selected   = false;
 			$option_label      = sprintf(
 				'<span class="forminator-radio-label">%s</span>',
 				wp_kses(
@@ -216,20 +244,6 @@ class Forminator_Radio extends Forminator_Field {
 				)
 			);
 
-			if ( isset( $draft_value['value'] ) ) {
-
-				if ( trim( $draft_value['value'] ) === trim( $value ) ) {
-					$option_default = true;
-				}
-			} elseif ( $this->has_prefill( $field ) ) {
-				// We have pre-fill parameter, use its value or $value.
-				$prefill = $this->get_prefill( $field, false );
-
-				if ( $prefill === $value ) {
-					$option_default = true;
-				}
-			}
-
 			$class = 'forminator-radio';
 
 			if ( $images_enabled && ! empty( $option_image_url ) ) {
@@ -245,7 +259,23 @@ class Forminator_Radio extends Forminator_Field {
 				$class .= ' forminator-radio-inline';
 			}
 
-			$selected = $option_default ? 'checked="checked"' : '';
+			if ( $post_valid ) {
+				if ( $value === $post_value ) {
+					$option_selected = true;
+				}
+			} else if ( $draft_valid ) {
+				if ( $value == $default ) {
+					$option_selected = true;
+				}
+			} else if ( $prefil_valid ) {
+				if ( $value == $default ) {
+					$option_selected = true;
+				}
+			} else if ( $option_default ) {
+				$option_selected = true;
+			}
+
+			$selected = $option_selected ? 'checked="checked"' : '';
 
 			$html .= '<label for="' . esc_attr( $input_id ) . '" class="' . esc_attr( $class ) . '" title="' . esc_attr( $option['label'] ) . '">';
 
@@ -362,7 +392,7 @@ class Forminator_Radio extends Forminator_Field {
 	 */
 	public function validate( $field, $data ) {
 		$id = self::get_property( 'element_id', $field );
-		if ( ! empty( $data ) && false === array_search( $data, array_column( $field['options'], 'value' ) ) ) {
+		if ( ! empty( $data ) && false === array_search( htmlspecialchars_decode( $data ), array_column( $field['options'], 'value' ) ) ) {
 			$this->validation_message[ $id ] = apply_filters(
 				'forminator_radio_field_nonexistent_validation_message',
 				__( 'Selected value does not exist.', 'forminator' ),

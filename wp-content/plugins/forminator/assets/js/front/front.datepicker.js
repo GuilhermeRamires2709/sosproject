@@ -90,6 +90,9 @@
 
 			this.$el.datepicker({
 				"beforeShow": function (input, inst) {
+					// elementor popup
+					var popup = $(this).closest('.elementor-popup-modal');
+
 					// Remove all Hustle UI related classes
 					( inst.dpDiv ).removeClass( function( index, css ) {
 						return ( css.match ( /\bhustle-\S+/g ) || []).join( ' ' );
@@ -126,6 +129,18 @@
 						if( 'undefined' !== typeof endDateVal ) {
 							$(this).datepicker( 'option', 'maxDate', endDateVal );
 						}
+					}
+
+					// if elementor popup append datepicker with input
+					if( popup.length ) {
+						popup.append($('#ui-datepicker-div'));
+						var rect = input.getBoundingClientRect();
+						setTimeout(function() {
+							inst.dpDiv.css({
+								top: rect.top + rect.height,
+								left: rect.left
+							});
+						}, 0);
 					}
 				},
 				"beforeShowDay": disabledWeekDays,
@@ -207,5 +222,4 @@
 			}
 		});
 	};
-
 })(jQuery, window, document);

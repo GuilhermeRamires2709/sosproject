@@ -190,7 +190,7 @@ class Forminator_CForm_Front extends Forminator_Render_Form {
 		$label_id  = $module_id . '-label';
 		$input_id  = $module_id . '-input';
 		$notice_id = $module_id . '-notice';
-		$token_id = $module_id . '-token';
+		$token_id  = $module_id . '-token';
 
 		$form_type = isset( $this->model->settings['form-type'] ) ? $this->model->settings['form-type'] : '';
 
@@ -237,8 +237,8 @@ class Forminator_CForm_Front extends Forminator_Render_Form {
 
 			$wrapper .= '</div>';
 		}
-		$wrapper .='<input type="hidden" class="forminator-auth-method" name="auth_method" value="' . esc_attr( $slug ) . '" id="' . $input_id . '" disabled />';
-		$wrapper .='<input type="hidden" class="forminator-auth-token" name="auth_token" id="' . $token_id . '" />';
+		$wrapper .= '<input type="hidden" class="forminator-auth-method" name="auth_method" value="' . esc_attr( $slug ) . '" id="' . $input_id . '" disabled />';
+		$wrapper .= '<input type="hidden" class="forminator-auth-token" name="auth_token" id="' . $token_id . '" />';
         $wrapper .= '<div class="forminator-wrap-nav">';
 		$wrapper .= esc_html__( 'Having problems? Try another way to log in', 'forminator' );
 		$wrapper .= '<ul class="forminator-authentication-nav">';
@@ -254,7 +254,7 @@ class Forminator_CForm_Front extends Forminator_Render_Form {
 		global $interim_login;
 		if ( ! $interim_login ) {
 			$link_back_to = sprintf( _x( '&larr; Back to %s', 'forminator' ), get_bloginfo( 'title', 'display' ) );
-			$wrapper .= '<p class="forminator-authentication-backtolog"><a class="auth-back" href="#">' . $link_back_to . '</a></p>';
+			$wrapper     .= '<p class="forminator-authentication-backtolog"><a class="auth-back" href="#">' . $link_back_to . '</a></p>';
 		}
 
 		$wrapper .= '</div>';
@@ -292,12 +292,12 @@ class Forminator_CForm_Front extends Forminator_Render_Form {
 
 			// Check whether provider is reCaptcha or hCaptcha
 			if ( $this->is_recaptcha() ) {
-				$src = 'https://www.google.com/recaptcha/api.js?hl=' . $language . '&onload=forminator_render_captcha&render=explicit';
-				$script_tag = 'forminator-google-recaptcha';
+				$src         = 'https://www.google.com/recaptcha/api.js?hl=' . $language . '&onload=forminator_render_captcha&render=explicit';
+				$script_tag  = 'forminator-google-recaptcha';
 				$script_load = 'grecaptcha';
 			} else {
-				$src = 'https://js.hcaptcha.com/1/api.js?hl=' . $language . '&onload=forminator_render_hcaptcha&render=explicit&recaptchacompat=off';
-				$script_tag = 'forminator-hcaptcha';
+				$src         = 'https://js.hcaptcha.com/1/api.js?hl=' . $language . '&onload=forminator_render_hcaptcha&render=explicit&recaptchacompat=off';
+				$script_tag  = 'forminator-hcaptcha';
 				$script_load = 'hcaptcha';
 			}
 
@@ -509,7 +509,6 @@ class Forminator_CForm_Front extends Forminator_Render_Form {
 		$paypal_setting = $this->get_paypal_properties();
 		if ( ! empty( $paypal_setting ) ) {
 			$arg           = array();
-			$card_array    = array( 'visa', 'mastercard', 'amex', 'discover', 'jcb', 'elo', 'hiper' );
 			$funding_array = array(
 				'card',
 				'credit',
@@ -543,14 +542,6 @@ class Forminator_CForm_Front extends Forminator_Render_Form {
 			}
 			if ( ! empty( $funding ) ) {
 				$arg['disable-funding'] = implode( ',', $funding );
-			}
-			foreach ( $card_array as $card ) {
-				if ( ! empty( $paypal_setting[ $card ] ) ) {
-					$cards[] = $card;
-				}
-			}
-			if ( ! empty( $cards ) && ! isset( $paypal_setting['credit'] ) ) {
-				$arg['disable-card'] = implode( ',', $cards );
 			}
 			if ( 'enable' === $paypal_setting['debug_mode'] ) {
 				$arg['debug'] = 'true';
@@ -1271,7 +1262,7 @@ class Forminator_CForm_Front extends Forminator_Render_Form {
 		$field_label     = $this->get_field_label( $field );
 		$placeholder     = $this->get_placeholder( $field );
 		$has_placeholder = $placeholder ? true : false;
-		$draft_value 	 = isset( $this->draft_data[ $field['element_id'] ] ) ? $this->draft_data[ $field['element_id'] ] : null;
+		$draft_value     = isset( $this->draft_data[ $field['element_id'] ] ) ? $this->draft_data[ $field['element_id'] ] : null;
 
 		// deprecated, label should be handled by field class it seld.
 		// if ( ! self::is_hidden( $field ) && ! $this->has_label( $field ) ) {.
@@ -1646,7 +1637,7 @@ class Forminator_CForm_Front extends Forminator_Render_Form {
 
 		if ( ! empty( $fields ) ) {
 			foreach ( $fields as $field ) {
-				if ( "captcha" === $field["type"] && 'recaptcha' === $field["captcha_provider"] ) {
+				if ( 'captcha' === $field['type'] && 'recaptcha' === $field['captcha_provider'] ) {
 					return true;
 				}
 			}
@@ -1941,8 +1932,8 @@ class Forminator_CForm_Front extends Forminator_Render_Form {
 	 */
 	public function get_button_markup() {
 
-		$html  = '';
-		$class = 'forminator-button forminator-button-submit';
+		$html          = '';
+		$class         = 'forminator-button forminator-button-submit';
 		$form_settings = $this->get_form_settings();
 
 		if ( empty( $this->lead_model->id ) || empty( $this->lead_model->settings['pagination'] )
@@ -2020,7 +2011,7 @@ class Forminator_CForm_Front extends Forminator_Render_Form {
 					$html  = '<div class="forminator-row forminator-paypal-row">';
 					$html .= '<div class="forminator-col forminator-col-12">';
 					$html .= '<div class="forminator-field">';
-					$html .= '<div id="paypal-button-container-' . $form_id . '_' . Forminator_CForm_Front::$uid . '" class="' . $id . '-payment forminator-button-paypal">';
+					$html .= '<div id="paypal-button-container-' . $form_id . '_' . self::$uid . '" class="' . $id . '-payment forminator-button-paypal">';
 					$html .= '</div>';
 					$html .= $this->get_save_draft_button( $this->get_form_settings() );
 					$html .= '</div>';
@@ -2400,20 +2391,18 @@ class Forminator_CForm_Front extends Forminator_Render_Form {
                 window.Forminator_Cform_Paginations = window.Forminator_Cform_Paginations || [];
 				<?php
 				if ( ! empty( $this->forms_properties ) ) {
-				foreach ( $this->forms_properties as $form_properties ) {
-				$options           = $this->get_front_init_options( $form_properties );
-				$pagination_config = $options['pagination_config'];
-				unset( $options['pagination_config'] );
-				?>
+					foreach ( $this->forms_properties as $form_properties ) {
+						$options           = $this->get_front_init_options( $form_properties );
+						$pagination_config = $options['pagination_config'];
+						unset( $options['pagination_config'] );
+						?>
                 window.Forminator_Cform_Paginations[<?php echo esc_attr( $form_properties['id'] ); ?>] =
-				<?php echo wp_json_encode( $pagination_config ); ?>;
+						<?php echo wp_json_encode( $pagination_config ); ?>;
 
                 var runForminatorFront = function () {
                     jQuery('#forminator-module-<?php echo esc_attr( $form_properties['id'] ); ?>[data-forminator-render="<?php echo esc_attr( $form_properties['render_id'] ); ?>"]')
                         .forminatorFront(<?php echo wp_json_encode( $options ); ?>);
                 }
-
-				runForminatorFront();
 
 				if (window.elementorFrontend) {
 					if (typeof elementorFrontend.hooks !== "undefined") {
@@ -2421,6 +2410,8 @@ class Forminator_CForm_Front extends Forminator_Render_Form {
 							runForminatorFront();
 						});
 					}
+				} else {
+					runForminatorFront();
 				}
 
 						<?php
@@ -2859,7 +2850,7 @@ class Forminator_CForm_Front extends Forminator_Render_Form {
 	 *
 	 * @param bool $hide
 	 * @param bool $is_preview
-	 * @param int $render_id
+	 * @param int  $render_id
 	 *
 	 * @return false|string
 	 */
@@ -3136,7 +3127,7 @@ class Forminator_CForm_Front extends Forminator_Render_Form {
 	public function get_2FA_poviders() {
 		$defender_data    = defender_backward_compatibility();
 		$two_fa_component = new $defender_data['two_fa_component']();
-		$providers = $two_fa_component->get_providers();
+		$providers        = $two_fa_component->get_providers();
 
 		return $providers;
 	}
@@ -3160,16 +3151,16 @@ class Forminator_CForm_Front extends Forminator_Render_Form {
 		}
 
 		$button = sprintf(
-						'<a href="#" class="forminator-save-draft-link disabled" title="%s" formnovalidate>%s</a>',
-						esc_attr__(
-							'Fill in form fields before saving it as a draft',
-							'forminator'
-						),
-						esc_html__(
-							isset( $form_settings['sc_link_text'] ) && ! empty( $form_settings['sc_link_text'] ) ? $form_settings['sc_link_text'] : 'Save as Draft',
-							'forminator'
-						)
-					);
+            '<a href="#" class="forminator-save-draft-link disabled" title="%s" formnovalidate>%s</a>',
+            esc_attr__(
+                'Fill in form fields before saving it as a draft',
+                'forminator'
+            ),
+            esc_html__(
+                isset( $form_settings['sc_link_text'] ) && ! empty( $form_settings['sc_link_text'] ) ? $form_settings['sc_link_text'] : 'Save as Draft',
+                'forminator'
+            )
+        );
 
 		return $button;
 	}

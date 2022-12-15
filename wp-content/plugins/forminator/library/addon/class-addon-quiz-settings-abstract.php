@@ -215,7 +215,7 @@ abstract class Forminator_Addon_Quiz_Settings_Abstract extends Forminator_Addon_
 		 * @param int   $quiz_id current quiz id.
 		 */
 		$values = apply_filters( 'forminator_addon_' . $addon_slug . '_save_quiz_settings_values', $values, $quiz_id );
-		update_post_meta( $this->quiz_id, $this->get_settings_meta_key(), $values );
+		update_post_meta( $this->quiz_id, $this->get_settings_meta_key(), forminator_sanitize_array_field( $values ) );
 	}
 
 	/**

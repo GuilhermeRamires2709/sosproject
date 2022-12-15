@@ -173,8 +173,34 @@ class Forminator_Select extends Forminator_Field {
 
 			$option_first_key = '';
 			// Multi values.
-			$default_arr = array();
-			$default     = '';
+			$default_arr 	  = array();
+			$default     	  = '';
+			$prefill          = false;
+			$prefil_valid     = false;
+			$draft_valid	  = false;
+
+			// Check if Pre-fill parameter used.
+			if ( $this->has_prefill( $field ) ) {
+				// We have pre-fill parameter, use its value or $value.
+				$prefill = $this->get_prefill( $field, $prefill );
+			}
+
+			foreach ( $options as $key => $option ) {
+				$pref_value  = $option['value'] ? esc_html( strip_tags( $option['value'] ) ) : wp_kses_post( strip_tags( $option['label'] ) );
+				$pref_values = explode( ',', $prefill );
+				if ( in_array( $pref_value, $pref_values ) ) {
+					$prefil_valid  = true;
+					$default_arr[] = $pref_value;
+				}
+
+				if ( ! empty( $draft_value ) ) {
+					if ( in_array( trim( $pref_value ), $draft_value ) ) { // phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict
+						$draft_valid   = true;
+						$default_arr[] = $pref_value;
+					}
+				}
+			}
+
 			foreach ( $options as $key => $option ) {
 
 				$value             = $option['value'] ? esc_html( strip_tags( $option['value'] ) ) : wp_kses_post( strip_tags( $option['label'] ) );
@@ -183,23 +209,9 @@ class Forminator_Select extends Forminator_Field {
 				$input_id          = $id . '-' . $i;
 				$option_default    = isset( $option['default'] ) ? filter_var( $option['default'], FILTER_VALIDATE_BOOLEAN ) : false;
 				$calculation_value = $calc_enabled && isset( $option['calculation'] ) ? $option['calculation'] : 0.0;
+				$selected 		   = false;
 				if ( 0 === $key ) {
 					$option_first_key = $value;
-				}
-
-				if ( ! empty( $draft_value ) ) {
-
-					if ( in_array( trim( $value ), $draft_value ) ) { // phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict
-						$option_default = true;
-					}
-				} elseif ( $this->has_prefill( $field ) ) {
-					// We have pre-fill parameter, use its value or $value.
-					$prefill        = $this->get_prefill( $field, false );
-					$prefill_values = explode( ',', $prefill );
-
-					if ( in_array( $value, $prefill_values ) ) {
-						$option_default = true;
-					}
 				}
 
 				if ( isset( $is_limit ) && 'enable' === $is_limit && ! empty( $limit ) ) {
@@ -216,17 +228,25 @@ class Forminator_Select extends Forminator_Field {
 					}
 				}
 
-				$selected = false;
-
 				if ( self::FIELD_PROPERTY_VALUE_NOT_EXIST !== $post_value ) {
 					if ( is_array( $post_value ) ) {
 						$selected = in_array( $value, $post_value ); // phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict
 					}
 				} else {
-					$selected = $option_default;
+					if ( $draft_valid ) {
+						if ( in_array( $value, $default_arr ) ) {
+							$selected = true;
+						}
+					} else if ( $prefil_valid ) {
+						if ( in_array( $value, $default_arr ) ) {
+							$selected = true;
+						}
+					} else {
+						$selected = $option_default;
+					}
 				}
 
-				if ( $option_default ) {
+				if ( $option_default && ! $prefil_valid && ! $draft_valid ) {
 					$default_arr[] = $value;
 				}
 
@@ -271,6 +291,10 @@ class Forminator_Select extends Forminator_Field {
 			$default        = '';
 			$search         = 'false';
 
+			$draft_valid	= false;
+			$post_valid		= false;
+			$prefil_valid 	= false;
+
 			if ( 'enable' === $search_status ) {
 				$search = 'true';
 			}
@@ -280,26 +304,38 @@ class Forminator_Select extends Forminator_Field {
 			}
 
 			foreach ( $options as $key => $option ) {
+				$pref_value = ( $option['value'] || is_numeric( $option['value'] ) ? esc_html( strip_tags( $option['value'] ) ) : '' );
+				if ( isset( $draft_value['value'] ) ) {
+					if ( trim( $draft_value['value'] ) === trim( $pref_value ) ) {
+						$draft_valid = true;
+						$default 	 = $pref_value;
+					}
+				}
+
+				if ( $this->has_prefill( $field ) ) {
+					// We have pre-fill parameter, use its value or $value.
+					$prefill        = $this->get_prefill( $field, false );
+					$prefill_values = explode( ',', $prefill );
+
+					if ( in_array( $pref_value, $prefill_values ) ) { // phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict
+						$default	  = $pref_value;
+						$prefil_valid = true;
+					}
+				}
+
+				if ( $pref_value === $post_value ) {
+					$default 	= $pref_value;
+					$post_valid = true;
+				}
+			}
+
+			foreach ( $options as $key => $option ) {
 				$value             = ( $option['value'] || is_numeric( $option['value'] ) ? esc_html( strip_tags( $option['value'] ) ) : '' );
 				$label             = $option['label'] ? wp_kses_post( strip_tags( $option['label'] ) ) : '';
 				$limit             = ( isset( $option['limit'] ) && $option['limit'] ) ? esc_html( $option['limit'] ) : '';
 				$option_default    = isset( $option['default'] ) ? filter_var( $option['default'], FILTER_VALIDATE_BOOLEAN ) : false;
 				$calculation_value = $calc_enabled && isset( $option['calculation'] ) ? esc_html( $option['calculation'] ) : 0.0;
-
-				if ( isset( $draft_value['value'] ) ) {
-
-					if ( trim( $draft_value['value'] ) === trim( $value ) ) {
-						$option_default = true;
-					}
-				} elseif ( $this->has_prefill( $field ) ) {
-					// We have pre-fill parameter, use its value or $value.
-					$prefill        = $this->get_prefill( $field, false );
-					$prefill_values = explode( ',', $prefill );
-
-					if ( in_array( $value, $prefill_values ) ) { // phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict
-						$option_default = true;
-					}
-				}
+				$option_selected   = false;
 
 				if ( isset( $is_limit ) && 'enable' === $is_limit && ! empty( $limit ) ) {
 
@@ -315,11 +351,27 @@ class Forminator_Select extends Forminator_Field {
 					}
 				}
 
-				if ( $option_default ) {
+				if ( $option_default && ! $draft_valid && ! $prefil_valid && ! $post_valid ) {
 					$default = $value;
 				}
 
-				$selected = ( $value === $post_value || $option_default ) ? 'selected="selected"' : '';
+				if ( $post_valid ) {
+					if ( $value === $post_value ) {
+						$option_selected = true;
+					}
+				} else if ( $draft_valid ) {
+					if ( $value == $default ) {
+						$option_selected = true;
+					}
+				} else if ( $prefil_valid ) {
+					if ( $value == $default ) {
+						$option_selected = true;
+					}
+				} else if ( $option_default ) {
+					$option_selected = true;
+				}
+
+				$selected = $option_selected ? 'selected="selected"' : '';
 
 				$options_markup .= sprintf(
 					'<option value="%s" %s data-calculation="%s">%s</option>',
@@ -424,12 +476,12 @@ class Forminator_Select extends Forminator_Field {
 
 		if ( is_array( $data ) ) {
 			foreach ( $data as $value ) {
-				if ( false === array_search( $value, array_column( $field['options'], 'value' ) ) ) {
+				if ( false === array_search( htmlspecialchars_decode( $value ), array_column( $field['options'], 'value' ) ) ) {
 					$value_exists = false;
 					break;
 				}
 			}
-		} elseif ( ! empty( $data ) && false === array_search( $data, array_column( $field['options'], 'value' ) ) ) {
+		} elseif ( ! empty( $data ) && false === array_search( htmlspecialchars_decode( $data ), array_column( $field['options'], 'value' ) ) ) {
 			$value_exists = false;
 		}
 

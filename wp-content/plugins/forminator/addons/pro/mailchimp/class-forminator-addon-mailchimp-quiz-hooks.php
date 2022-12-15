@@ -21,7 +21,6 @@ class Forminator_Addon_Mailchimp_Quiz_Hooks extends Forminator_Addon_Quiz_Hooks_
 	 *
 	 * @since 1.0 Mailchimp Addon
 	 * @var Forminator_Addon_Mailchimp_Quiz_Settings | null
-	 *
 	 */
 	protected $quiz_settings_instance;
 
@@ -142,10 +141,10 @@ class Forminator_Addon_Mailchimp_Quiz_Hooks extends Forminator_Addon_Quiz_Hooks_
 	 *
 	 * @since 1.0 Mailchimp Addon
 	 *
-	 * @param array      $form_settings
-	 * @param string     $key
+	 * @param array   $form_settings
+	 * @param string  $key
 	 * @param            $default
-	 * @param string     $type
+	 * @param string  $type
 	 *
 	 * @return int|mixed
 	 */
@@ -289,6 +288,7 @@ class Forminator_Addon_Mailchimp_Quiz_Hooks extends Forminator_Addon_Quiz_Hooks_
 
 		$quiz_id                = $this->quiz_id;
 		$quiz_settings_instance = $this->quiz_settings_instance;
+		$gdpr                   = false;
 
 		/**
 		 * Filter mailchimp submitted form data to be processed
@@ -308,15 +308,42 @@ class Forminator_Addon_Mailchimp_Quiz_Hooks extends Forminator_Addon_Quiz_Hooks_
 
 		forminator_addon_maybe_log( __METHOD__, $submitted_data );
 
-		$quiz_submitted_data  = get_quiz_submitted_data( $this->quiz, $submitted_data, $form_entry_fields );
+		$quiz_submitted_data = get_quiz_submitted_data( $this->quiz, $submitted_data, $form_entry_fields );
 
 		$addon_setting_values = $this->quiz_settings_instance->get_quiz_settings_values();
 		$quiz_settings        = $this->quiz_settings_instance->get_quiz_settings();
 		$addons_fields        = $this->quiz_settings_instance->get_form_fields();
 
-		$form_entry_fields   = forminator_lead_form_data( $submitted_data );
-		$submitted_data      = get_addons_lead_form_entry_data( $quiz_settings, $submitted_data, $addons_fields );
-		$submitted_data      = array_merge( $submitted_data, $quiz_submitted_data );
+		$form_entry_fields = forminator_lead_form_data( $submitted_data );
+		$submitted_data    = get_addons_lead_form_entry_data( $quiz_settings, $submitted_data, $addons_fields );
+
+        // Check if there is a date field-type then modify it to a format that mailchimp accepts.
+        foreach ( $submitted_data as $field => $value ) {
+			// Also Check the date field doesn't include the '-year', '-month' or '-day'.
+			if (
+				false !== stripos( $field, 'date-' ) &&
+				false === stripos( $field, '-year' ) &&
+				false === stripos( $field, '-month' ) &&
+				false === stripos( $field, '-day' ) &&
+				! empty( $value )
+				) {
+
+                $date_format              = Forminator_API::get_form_field( $form_id, $field, false )->date_format;
+                $normalized_format        = new Forminator_Date();
+                $normalized_format        = $normalized_format->normalize_date_format( $date_format );
+                $mailchimp_format         = DateTime::createFromFormat( $normalized_format, $value );
+                $mailchimp_formatted      = $mailchimp_format->format( 'Y-m-d' );
+                $submitted_data[ $field ] = $mailchimp_formatted;
+            }
+			if (
+				! empty( $value ) &&
+				( false !== strpos( $field, 'gdprcheckbox' ) || false !== strpos( $field, 'consent' ) )
+			) {
+				$gdpr = true;
+			}
+        }
+
+		$submitted_data    = array_merge( $submitted_data, $quiz_submitted_data );
 
 		// initialize as null.
 		$mailchimp_api = null;
@@ -329,7 +356,7 @@ class Forminator_Addon_Mailchimp_Quiz_Hooks extends Forminator_Addon_Quiz_Hooks_
 			$entry_name .= "-{$this->addon->multi_global_id}";
 		}
 
-		//check required fields
+		// check required fields
 		try {
 			$mailchimp_api = $this->addon->get_api();
 
@@ -338,7 +365,7 @@ class Forminator_Addon_Mailchimp_Quiz_Hooks extends Forminator_Addon_Quiz_Hooks_
 				if ( isset( $addon_setting_values['enable_gdpr'] ) && $addon_setting_values['enable_gdpr'] ) {
 					if ( isset( $addon_setting_values['gdpr_text'] ) && ! empty( $addon_setting_values['gdpr_text'] ) ) {
 						if ( ! $this->gdpr_is_checked ) {
-							//GDPR not checked, add error
+							// GDPR not checked, add error
 							throw new Forminator_Addon_Mailchimp_Exception(
 								__(
 									'Forminator Addon Mailchimp was not sending subscriber to mailchimp as GDPR field is not checked on input',
@@ -380,7 +407,7 @@ class Forminator_Addon_Mailchimp_Quiz_Hooks extends Forminator_Addon_Quiz_Hooks_
 				}
 			}
 
-			//check required fields fulfilled
+			// check required fields fulfilled
 			foreach ( $mailchimp_required_fields as $mailchimp_required_field ) {
 				if ( 'address' === $mailchimp_required_field->type ) {
 					$address_fields = $this->quiz_settings_instance->mail_address_fields();
@@ -438,7 +465,7 @@ class Forminator_Addon_Mailchimp_Quiz_Hooks extends Forminator_Addon_Quiz_Hooks_
 					}
 				}
 			} catch ( Forminator_Addon_Mailchimp_Wp_Api_Not_Found_Exception $e ) {
-				//Member not yet subscribed, keep going on, mark status based on double-opt-in option
+				// Member not yet subscribed, keep going on, mark status based on double-opt-in option
 				if ( $is_double_opt_in_enabled ) {
 					$status = 'pending';
 				}
@@ -482,6 +509,8 @@ class Forminator_Addon_Mailchimp_Quiz_Hooks extends Forminator_Addon_Quiz_Hooks_
 			if ( ! empty( $merge_fields ) ) {
 				$args['merge_fields'] = $merge_fields;
 			}
+
+			$args = self::maybe_add_additional_data( $args, $addon_setting_values, $gdpr );
 
 			$mail_list_id = $addon_setting_values['mail_list_id'];
 
@@ -611,6 +640,49 @@ class Forminator_Addon_Mailchimp_Quiz_Hooks extends Forminator_Addon_Quiz_Hooks_
 		);
 
 		return $entry_fields;
+	}
+
+	/**
+	 * Add additional data if needed.
+	 *
+	 * @param array $args Existed arguments.
+	 * @param array $addon_setting_values Addon settings.
+	 * @param bool  $gdpr Is a GDPR field exist or not.
+	 * @return array
+	 */
+	private static function maybe_add_additional_data( $args, $addon_setting_values, $gdpr ) {
+		if ( ! empty( $addon_setting_values['group_interest'] ) ) {
+			$interests         = (array) $addon_setting_values['group_interest'];
+			$args['interests'] = array_fill_keys( $interests, true );
+		}
+
+		if ( ! empty( $addon_setting_values['tags'] ) ) {
+			$args['tags'] = array_values( $addon_setting_values['tags'] );
+		}
+
+		if ( true === $gdpr && ! empty( $addon_setting_values['gdpr'] ) ) {
+			$args['marketing_permissions'] = self::prepare_marketing_permissions( $addon_setting_values['gdpr'] );
+		}
+
+		return $args;
+	}
+
+	/**
+	 * Prepare GDPR fields for Mailchimp API
+	 *
+	 * @param array $gdpr_fields Saved GDPR fields.
+	 * @return array
+	 */
+	private static function prepare_marketing_permissions( $gdpr_fields ) {
+		$permissions = array();
+		foreach ( $gdpr_fields as $key => $title ) {
+			$permissions[] = array(
+				'marketing_permission_id' => $key,
+				'enabled'                 => true,
+			);
+		}
+
+		return $permissions;
 	}
 
 	/**
@@ -869,7 +941,7 @@ class Forminator_Addon_Mailchimp_Quiz_Hooks extends Forminator_Addon_Quiz_Hooks_
 	 *
 	 * @param        $addon_meta_data
 	 * @param        $key
-	 * @param string $default
+	 * @param string          $default
 	 *
 	 * @return string
 	 */
@@ -904,7 +976,7 @@ class Forminator_Addon_Mailchimp_Quiz_Hooks extends Forminator_Addon_Quiz_Hooks_
 	 * @since 1.0 Mailchimp Addon
 	 *
 	 * @param Forminator_Form_Entry_Model $entry_model
-	 * @param  array                      $addon_meta_data
+	 * @param  array                       $addon_meta_data
 	 *
 	 * @return bool
 	 */
@@ -1055,39 +1127,39 @@ class Forminator_Addon_Mailchimp_Quiz_Hooks extends Forminator_Addon_Quiz_Hooks_
 
 		// delete links available on data_received of mailchimp.
 		/** == Addon meta data reference ==*/
-		//[
-		//  {.
-		//	  "name": "status",
-		//    "value": {.
-		//	  "is_sent": true,
-		//      "description": "Successfully added or updated member on Mailchimp list",.
-		//      "data_sent": {.
-		//          ...
-		//	  },
-		//      "data_received": {.
-		//		  "id": "XXXXXXX",
-		//        ...
-		//        "list_id": "XXXXXXX",.
-		//        "_links": [.
-		//          {.
-		//	          "rel": "upsert",
-		//            "href": "https:\/\/us9.api.mailchimp.com\/3.0\/lists\/XXXXXXX\/members\/XXXXXXX",.
-		//            "method": "PUT",.
-		//            "targetSchema": "https:\/\/us9.api.mailchimp.com\/schema\/3.0\/Definitions\/Lists\/Members\/Response.json",.
-		//            "schema": "https:\/\/us9.api.mailchimp.com\/schema\/3.0\/Definitions\/Lists\/Members\/PUT.json".
-		//          },.
-		//          {.
-		//	          "rel": "delete",
-		//            "href": "https:\/\/us9.api.mailchimp.com\/3.0\/lists\/XXXXXXX\/members\/XXXXXXX",.
-		//            "method": "DELETE".
-		//          },.
-		//          ...
-		//        ].
-		//      },.
-		//      "url_request": "https:\/\/us9.api.mailchimp.com\/3.0\/lists\/XXXX\/members\/XXXXXXX".
-		//    }.
-		//  }.
-		//]
+		// [
+		// {.
+		// "name": "status",
+		// "value": {.
+		// "is_sent": true,
+		// "description": "Successfully added or updated member on Mailchimp list",.
+		// "data_sent": {.
+		// ...
+		// },
+		// "data_received": {.
+		// "id": "XXXXXXX",
+		// ...
+		// "list_id": "XXXXXXX",.
+		// "_links": [.
+		// {.
+		// "rel": "upsert",
+		// "href": "https:\/\/us9.api.mailchimp.com\/3.0\/lists\/XXXXXXX\/members\/XXXXXXX",.
+		// "method": "PUT",.
+		// "targetSchema": "https:\/\/us9.api.mailchimp.com\/schema\/3.0\/Definitions\/Lists\/Members\/Response.json",.
+		// "schema": "https:\/\/us9.api.mailchimp.com\/schema\/3.0\/Definitions\/Lists\/Members\/PUT.json".
+		// },.
+		// {.
+		// "rel": "delete",
+		// "href": "https:\/\/us9.api.mailchimp.com\/3.0\/lists\/XXXXXXX\/members\/XXXXXXX",.
+		// "method": "DELETE".
+		// },.
+		// ...
+		// ].
+		// },.
+		// "url_request": "https:\/\/us9.api.mailchimp.com\/3.0\/lists\/XXXX\/members\/XXXXXXX".
+		// }.
+		// }.
+		// ]
 		/** == Addon meta data reference ==*/
 
 		$delete_member_url = '';
